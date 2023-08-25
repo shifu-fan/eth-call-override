@@ -1,5 +1,6 @@
 import { ethers } from "hardhat";
 import { promises as fs } from "fs";
+import { hexZeroPad } from "@ethersproject/bytes";
 
 // from here:  https://github.com/devanoneth/TokenChecks/blob/master/scripts/tokenOverride.ts
 
@@ -11,6 +12,8 @@ async function callViewMethod(target: string, code: any) {
   const BaseViewer = await ethers.getContractFactory("BaseViewer");
     const functionData = BaseViewer.interface.encodeFunctionData("getNumber", []);
 
+    const slot0 = hexZeroPad("0x0", 32); // 替换slot 0的值
+    console.log("slot0: ", slot0)
     const returnedData = await ethers.provider.send("eth_call", [
       {
         data: functionData,
@@ -23,6 +26,9 @@ async function callViewMethod(target: string, code: any) {
         [target]: {
           code,
           // balance: utils.hexStripZeros(utils.parseEther("1").toHexString()),
+          stateDiff: {
+            [slot0]: hexZeroPad("0x4567", 32),
+          },
         },
       },
     ]);
@@ -63,7 +69,7 @@ export default async function tokenOverride(params: TokenParams): Promise<void> 
     ).deployedBytecode;
     
     await callViewMethod(params.address, ToleranceCheckOverrideDeployedBytecode);
-    await callRevertMethod(params.address, ToleranceCheckOverrideDeployedBytecode);
+    // await callRevertMethod(params.address, ToleranceCheckOverrideDeployedBytecode);
     
   } catch (e) {
     console.error("FAILED ToleranceCheck: ", JSON.stringify(e, null, 2));
